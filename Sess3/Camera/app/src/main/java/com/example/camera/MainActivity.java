@@ -14,6 +14,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
@@ -21,10 +22,26 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements MotionSensorManager.OnMotionSensorManagerListener {
 
     static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 1;
     static final int REQUEST_ID_READ_WRITE_PERMISSION = 1;
+
+    //motion sensor manager
+    private MotionSensorManager mMotionSensorManager;
+
+    private TextView mag_x;
+    private TextView mag_y;
+    private TextView mag_z;
+    private TextView mag_h;
+
+    private TextView acc_x;
+    private TextView acc_y;
+    private TextView acc_z;
+
+    private TextView gyro_x;
+    private TextView gyro_y;
+    private TextView gyro_z;
 
     private void askCameraPermissions() {
         if (Build.VERSION.SDK_INT >= 23) {
@@ -54,7 +71,40 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        //assign textview from layout file for emf
+        mag_x = (TextView) findViewById(R.id.emf_Xaxis);
+        mag_y = (TextView) findViewById(R.id.emf_Yaxis);
+        mag_z = (TextView) findViewById(R.id.emf_Zaxis);
+        mag_h = (TextView) findViewById(R.id.emf_magnetic_field);
+
+        //assign textview from layout file for accelerometer
+        acc_x = (TextView) findViewById(R.id.acc_Xaxis);
+        acc_y = (TextView) findViewById(R.id.acc_Yaxis);
+        acc_z = (TextView) findViewById(R.id.acc_Zaxis);
+
+        //assign textview from layout file for gyroscope
+        gyro_x = (TextView) findViewById(R.id.gyro_Xaxis);
+        gyro_y = (TextView) findViewById(R.id.gyro_Yaxis);
+        gyro_z = (TextView) findViewById(R.id.gyro_Zaxis);
+
+        mMotionSensorManager = new MotionSensorManager(this);
+        mMotionSensorManager.setOnMotionSensorManagerListener(this);
+
         askCameraPermissions();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        //register sensors
+        mMotionSensorManager.registerMotionSensors();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        //unregister sensors when unused
+        mMotionSensorManager.unregisterMotionSensors();
     }
 
     @Override
@@ -145,5 +195,27 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "Task failed, please try again", Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    @Override
+    public void onAccValueUpdated(float[] acceleration) {
+        acc_x.setText("acc_Xaxis: " + acceleration[0]);
+        acc_y.setText("acc_Yaxis: " + acceleration[1]);
+        acc_z.setText("acc_Zaxis: " + acceleration[2]);
+    }
+
+    @Override
+    public void onGyoValueUpdated(float[] gyoscope) {
+        gyro_x.setText("gyo_Xaxis: " + gyoscope[0]);
+        gyro_y.setText("gyo_Yaxis: " + gyoscope[1]);
+        gyro_z.setText("gyo_Zaxis: " + gyoscope[2]);
+    }
+
+    @Override
+    public void onMagValueUpdated(float[] magneticfield) {
+        mag_x.setText("mag_Xaxis: " + magneticfield[0]);
+        mag_y.setText("mag_Yaxis: " + magneticfield[1]);
+        mag_z.setText("mag_Zaxis: " + magneticfield[2]);
+        mag_h.setText("magnetic_field: " + magneticfield[3]);
     }
 }
