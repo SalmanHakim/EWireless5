@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">HelloBT</string>
+    <string name="on">Turn on</string>
+    <string name="off">Turn off</string>
+    <string name="discover">Turn discoverable</string>
+    <string name="list">List devices</string>
+    <string name="paired">Paired Devices</string>
 </resources>
