@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--Represents files in the files/ subdirectory of your app's internal storage area.
+    This subdirectory is the same as the value returned by Context.getFileDir(). -->
+    <external-path
+        name="external"
+        path="."/>
+
+    <!-- Represents files in the root of your app's external storage area. The root path of this
+    subdirectory is the same as the value returned by Environment.getExternalStorageDirectory(). -->
+    <external-files-path
+        name="external_files"
+        path="."/>
+
+    <cache-path
+        name="cache"
+        path="."/>
+
+    <external-cache-path
+        name="external_cache"
+        path="."/>
+
+    <files-path
+        name="files"
+        path="."/>
+</paths>

@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Multi</string>
+    <string name="camera">Camera</string>
+    <string name="location">Location</string>
+    <string name="orientation">Orientation</string>
+    <string name="wifi">Wifi</string>
+    <string name="latitude">Latitude</string>
+    <string name="longitude">Longitude</string>
+</resources>
