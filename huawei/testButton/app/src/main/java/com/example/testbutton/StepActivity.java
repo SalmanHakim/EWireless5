@@ -26,8 +26,8 @@ public class StepActivity extends AppCompatActivity implements SensorEventListen
     private boolean counted = true;
     private int steps = 0;
     ////threshold for steps
-    private double uThreshold = 0.108;
-    private double lThreshold = 0.088;
+    final private float uThreshold = 0.108f;
+    final private float lThreshold = 0.088f;
 
     // Sensors data value used to calculate orientation
     float[] accelerometerValues = new float[3];
@@ -69,21 +69,22 @@ public class StepActivity extends AppCompatActivity implements SensorEventListen
         sensorManager.unregisterListener(this);
     }
 
-    double magnitude = 0;
-    double hpfiltered = 0;
-    double lpfiltered = 0;
+    private float magnitude = 0.0f;
+    private float[] hpfiltered = new float[3];
+    private float[] lpfiltered = new float[3];
 
-    double prev_x = 0.0;
-    double prev_y = 0.0;
-    double x, y;
+    float prev_x = 0.0f;
+    float prev_y = 0.0f;
+    float x, y;
 
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
         if (sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            magnitude = Math.sqrt((sensorEvent.values[0] * sensorEvent.values[0]) + (sensorEvent.values[1] * sensorEvent.values[1]) + (sensorEvent.values[2] * sensorEvent.values[2]));
-            hpfiltered = highPass(magnitude);
+
+            hpfiltered = highPass(sensorEvent.values);
             lpfiltered = lowPass(hpfiltered);
-            acc.setText("Acc: " + lpfiltered);
+            magnitude = (float) Math.sqrt((lpfiltered[0] * lpfiltered[0]) + (lpfiltered[1] * lpfiltered[1]) + (lpfiltered[2] * lpfiltered[2]));
+            acc.setText("Acc: " + magnitude);
 
             // for degree calculation
             accelerometerValues[0] = sensorEvent.values[0];
@@ -98,7 +99,7 @@ public class StepActivity extends AppCompatActivity implements SensorEventListen
         }
 
         //step length
-        double sl = stepLength();
+        float sl = stepLength();
 
         //heading angle
         float degree = calculateOrientation();
@@ -106,12 +107,12 @@ public class StepActivity extends AppCompatActivity implements SensorEventListen
 
         //step detector
         if (!detectFlag) {
-            if (lpfiltered > uThreshold) {
+            if (magnitude > uThreshold) {
                 detectFlag = true;
                 counted = false;
             }
         }
-        else if (lpfiltered < lThreshold) {
+        else if (magnitude < lThreshold) {
             detectFlag = false;
         }
 
@@ -122,8 +123,8 @@ public class StepActivity extends AppCompatActivity implements SensorEventListen
 
             //coordinate
             double rad = Math.toRadians(degree);
-            x = prev_x + (sl * Math.sin(rad));
-            y = prev_y + (sl * Math.cos(rad));
+            x = (float) (prev_x + (sl * Math.sin(rad)));
+            y = (float) (prev_y + (sl * Math.cos(rad)));
             prev_x = x;
             prev_y = y;
             coo_x.setText("Coordinate x: " + x);
@@ -131,31 +132,44 @@ public class StepActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    private double stepLength () {
-        double height = 1.72;
+    private float stepLength () {
+        float height = 1.72f;
         boolean men = true;
 
         if (men) {
-            return (0.415 * height);
+            return (0.415f * height);
         }
         else {
-            return (0.413 * height);
+            return (0.413f * height);
         }
     }
 
-    double mean_grav = 9.81;
-    private double highPass(double mag) {
-        double alpha = 0.9;
+    private float grav[] = new float[3];
+    //double mean_grav = 9.81;
+    private float[] highPass(float[] mag) {
+        float alpha = 0.9f;
+        float[] filtered = new float[3];
 
-        mean_grav = (mag * (1-alpha)) + (mean_grav*alpha);
-        return (mag - mean_grav);
+        grav[0] = (alpha * grav[0]) + ((1-alpha) * mag[0]);
+        grav[1] = (alpha * grav[1]) + ((1-alpha) * mag[1]);
+        grav[2] = (alpha * grav[2]) + ((1-alpha) * mag[2]);
+
+        //mean_grav = (mag * (1-alpha)) + (mean_grav*alpha);
+
+        filtered[0] = mag[0] - grav[0];
+        filtered[1] = mag[1] - grav[1];
+        filtered[2] = mag[2] - grav[2];
+
+        return filtered;
     }
 
-    double filtered = 0;
-    private double lowPass(double mag) {
-        double alpha = 0.2;
+    private float[] lowPass(float[] mag) {
+        float alpha = 0.2f;
+        float[] filtered = new float[3];
 
-        filtered = (mag * alpha) + (filtered * (1-alpha));
+        filtered[0] = (mag[0] * alpha) + (filtered[0] * (1-alpha));
+        filtered[1] = (mag[1] * alpha) + (filtered[1] * (1-alpha));
+        filtered[2] = (mag[2] * alpha) + (filtered[2] * (1-alpha));
         return filtered;
     }
 
