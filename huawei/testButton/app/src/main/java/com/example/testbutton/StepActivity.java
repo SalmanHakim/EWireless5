@@ -22,9 +22,9 @@ public class StepActivity extends AppCompatActivity implements SensorEventListen
     private Sensor accelerometer;
 
     // initialise parameters
-    private boolean detectFlag = false;
-    private boolean counted = true;
-    private int steps = 0;
+    private boolean stepDetect = false;
+    private boolean stepCounted = true;
+    private int steps = -1;     //wait for sensor to stabilised
     ////threshold for steps
     final private float uThreshold = 0.108f;
     final private float lThreshold = 0.088f;
@@ -38,6 +38,8 @@ public class StepActivity extends AppCompatActivity implements SensorEventListen
     TextView heading;
     TextView coo_x;
     TextView coo_y;
+    TextView coo_lat;
+    TextView coo_lon;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +51,8 @@ public class StepActivity extends AppCompatActivity implements SensorEventListen
         heading = (TextView) findViewById(R.id.textView3);
         coo_x = (TextView) findViewById(R.id.textView4);
         coo_y = (TextView) findViewById(R.id.textView5);
+        coo_lat = (TextView) findViewById(R.id.lat);
+        coo_lon = (TextView) findViewById(R.id.lon);
 
         // initialise sensors
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -69,21 +73,38 @@ public class StepActivity extends AppCompatActivity implements SensorEventListen
         sensorManager.unregisterListener(this);
     }
 
-    private float magnitude = 0.0f;
+    private double magnitude;
     private float[] hpfiltered = new float[3];
     private float[] lpfiltered = new float[3];
+    private float grav[] = new float[3];
 
+    //coordinate initialise
     float prev_x = 0.0f;
     float prev_y = 0.0f;
     float x, y;
 
+    //world coordinate initialise
+    double prev_lat = 0.0;
+    double prev_lon = 0.0;
+    double lat, lon;
+    final double lat_deg_per_m = 1/110947.2;
+    final double lon_deg_per_m = 1/87843.36;
+
+    //angle parameters
+    final float min_degree = 10.0f;
+    final float max_degree = 80.0f;
+    float prev_degree = 0.0f;
+    float degree;
+
+
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
+
         if (sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
 
             hpfiltered = highPass(sensorEvent.values);
             lpfiltered = lowPass(hpfiltered);
-            magnitude = (float) Math.sqrt((lpfiltered[0] * lpfiltered[0]) + (lpfiltered[1] * lpfiltered[1]) + (lpfiltered[2] * lpfiltered[2]));
+            magnitude = Math.sqrt((lpfiltered[0] * lpfiltered[0]) + (lpfiltered[1] * lpfiltered[1]) + (lpfiltered[2] * lpfiltered[2]));
             acc.setText("Acc: " + magnitude);
 
             // for degree calculation
@@ -102,33 +123,79 @@ public class StepActivity extends AppCompatActivity implements SensorEventListen
         float sl = stepLength();
 
         //heading angle
-        float degree = calculateOrientation();
+        degree = calculateOrientation();
         heading.setText("Angle: " + degree);
 
         //step detector
-        if (!detectFlag) {
+        if (!stepDetect) {
             if (magnitude > uThreshold) {
-                detectFlag = true;
-                counted = false;
+                stepDetect = true;
+                stepCounted = false;
             }
         }
         else if (magnitude < lThreshold) {
-            detectFlag = false;
+            stepDetect = false;
         }
 
-        if (detectFlag && !counted) {
-            counted = true;
+        if (stepDetect && !stepCounted) {
+            stepCounted = true;
             steps = steps + 1;
             counter.setText("Step: "+ steps);
 
-            //coordinate
-            double rad = Math.toRadians(degree);
-            x = (float) (prev_x + (sl * Math.sin(rad)));
-            y = (float) (prev_y + (sl * Math.cos(rad)));
+            if (steps > 0) {
+                if (Math.abs(prev_degree - degree) <= min_degree) {
+                    //coordinate
+                    x = (float) (prev_x + (sl * Math.sin(Math.toRadians(prev_degree))));
+                    y = (float) (prev_y + (sl * Math.cos(Math.toRadians(prev_degree))));
+
+                    //world coordinate
+                    lat = prev_lat + ((sl * Math.cos(Math.toRadians(prev_degree))) * lat_deg_per_m);
+                    lon = prev_lon + ((sl * Math.sin(Math.toRadians(prev_degree))) * lon_deg_per_m);
+                } else if (Math.abs(prev_degree - degree) > min_degree &&
+                        Math.abs(prev_degree - degree) < max_degree) {
+                    //coordinate
+                    x = (float) (prev_x + (sl * Math.sin(Math.toRadians(degree))));
+                    y = (float) (prev_y + (sl * Math.cos(Math.toRadians(degree))));
+
+                    //world coordinate
+                    lat = prev_lat + ((sl * Math.cos(Math.toRadians(degree))) * lat_deg_per_m);
+                    lon = prev_lon + ((sl * Math.sin(Math.toRadians(degree))) * lon_deg_per_m);
+                } else {
+                    if ((degree - prev_degree) > 0) {
+                        //coordinate
+                        x = (float) (prev_x + (sl * Math.sin(Math.toRadians(prev_degree + 90))));
+                        y = (float) (prev_y + (sl * Math.cos(Math.toRadians(prev_degree + 90))));
+
+                        //world coordinate
+                        lat = prev_lat + ((sl * Math.cos(Math.toRadians(prev_degree + 90))) * lat_deg_per_m);
+                        lon = prev_lon + ((sl * Math.sin(Math.toRadians(prev_degree + 90))) * lon_deg_per_m);
+
+                        prev_degree = prev_degree + 90;
+                    } else {
+                        //coordinate
+                        x = (float) (prev_x + (sl * Math.sin(Math.toRadians(prev_degree - 90))));
+                        y = (float) (prev_y + (sl * Math.cos(Math.toRadians(prev_degree - 90))));
+
+                        //world coordinate
+                        lat = prev_lat + ((sl * Math.cos(Math.toRadians(prev_degree - 90))) * lat_deg_per_m);
+                        lon = prev_lon + ((sl * Math.sin(Math.toRadians(prev_degree - 90))) * lon_deg_per_m);
+
+                        prev_degree = prev_degree - 90;
+                    }
+                }
+            }
+
+            //set coordinate
             prev_x = x;
             prev_y = y;
             coo_x.setText("Coordinate x: " + x);
             coo_y.setText("Coordinate y: " + y);
+
+            //set world coordinate
+            prev_lat = lat;
+            prev_lon = lon;
+            coo_lat.setText("Latitude: " + lat);
+            coo_lon.setText("Longitude: " + lon);
         }
     }
 
@@ -144,10 +211,10 @@ public class StepActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    private float grav[] = new float[3];
+
     //double mean_grav = 9.81;
     private float[] highPass(float[] mag) {
-        float alpha = 0.9f;
+        float alpha = 0.2f;
         float[] filtered = new float[3];
 
         grav[0] = (alpha * grav[0]) + ((1-alpha) * mag[0]);

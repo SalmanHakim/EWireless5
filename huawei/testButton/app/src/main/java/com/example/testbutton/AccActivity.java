@@ -9,6 +9,6 @@ public class AccActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_acc);
+        setContentView(R.layout.activity_step);
     }
 }
