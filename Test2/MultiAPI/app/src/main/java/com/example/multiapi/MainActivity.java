@@ -29,6 +29,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.NumberPicker;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -38,12 +39,10 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener {
+public class MainActivity extends AppCompatActivity implements OrientationModule.OnOrientationModule {
 
-    //declare sensors
-    private SensorManager mSensorManager;
-    private Sensor Accelerometer;
-    private Sensor mMagneticField;
+    //orientation
+    private OrientationModule orientationModule;
 
     //declare text view
     TextView lat;
@@ -83,10 +82,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Toast.makeText(this, "Open GPS", Toast.LENGTH_SHORT).show();
         }
 
-        //assign sensor type
-        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        Accelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        mMagneticField = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        //assign orientation sensor
+        orientationModule = new OrientationModule(this);
+        orientationModule.setOnOrientationModule(this);
     }
 
     public void wifi(View view) {
@@ -100,8 +98,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onResume();
         //register sensors when using app
         registerReceiver(wifiScanReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-        mSensorManager.registerListener(this, mMagneticField, SensorManager.SENSOR_DELAY_NORMAL);
-        mSensorManager.registerListener(this, Accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        orientationModule.registerOrientationSensors();
     }
 
     @Override
@@ -109,7 +106,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onPause();
         //disable sensor when not using the app
         unregisterReceiver(wifiScanReceiver);
-        mSensorManager.unregisterListener(this);
+        orientationModule.unregisterOrientationSensors();
     }
 
     static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 1;
@@ -280,89 +277,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
     }
 
-    float[] accelerometerValues = new float[3];
-    float[] magneticFieldValues = new float[3];
-
-    final float alpha = (float) 0.8;
-    private float[] gravity = new float[3];
-    @Override
-    public void onSensorChanged(SensorEvent sensorEvent) {
-        switch (sensorEvent.sensor.getType()) {
-            case Sensor.TYPE_ACCELEROMETER:
-                //low-pass filter -- isolate force of gravity
-                gravity[0] = (alpha * gravity[0]) + (1-alpha) * sensorEvent.values[0];
-                gravity[1] = (alpha * gravity[1]) + (1-alpha) * sensorEvent.values[1];
-                gravity[2] = (alpha * gravity[2]) + (1-alpha) * sensorEvent.values[2];
-
-                //high-pass filter -- remove force of gravity
-                accelerometerValues[0] = sensorEvent.values[0] - gravity[0];
-                accelerometerValues[1] = sensorEvent.values[1] - gravity[1];
-                accelerometerValues[2] = sensorEvent.values[2] - gravity[2];
-
-                break;
-
-            case Sensor.TYPE_MAGNETIC_FIELD:
-                magneticFieldValues[0] = sensorEvent.values[0];
-                magneticFieldValues[1] = sensorEvent.values[1];
-                magneticFieldValues[2] = sensorEvent.values[2];
-
-                break;
-        }
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-
-    }
-
     public void orientation (View view) {
-        calculateOrientation();
+        tv.setText(direction);
+        deg.setText((int) angle);
     }
 
-    private void calculateOrientation() {
-
-        float[] values = new float[3];
-
-        float [] R = new float[9];
-
-        SensorManager.getRotationMatrix(R, null, accelerometerValues, magneticFieldValues);
-
-        SensorManager.getOrientation(R, values);
-
-        float degree = (float) Math.toDegrees(values[0]);
-
-        if (degree >= -5 && degree < 5) {
-            tv.setText("North");
-            //deg.setText((int)degree);
-        }
-        else if (degree >= 5 && degree < 85) {
-            tv.setText("North-East");
-            //deg.setText((int) degree);
-        }
-        else if (degree >= 85 && degree < 95) {
-            tv.setText("East");
-            //deg.setText((int) degree);
-        }
-        else if (degree >= 95 && degree < 175) {
-            tv.setText("South-East");
-            //deg.setText((int) degree);
-        }
-        else if (degree >= 175 && degree < -175) {
-            tv.setText("South");
-            //deg.setText((int) degree);
-        }
-        else if (degree >= -85 && degree < -5) {
-            tv.setText("North-West");
-            //deg.setText((int) degree);
-        }
-        else if (degree >= -95 && degree < -85) {
-            tv.setText("West");
-            //deg.setText((int) degree);
-        }
-        else if (degree >= -175 && degree < -95) {
-            tv.setText("South-West");
-            //deg.setText((int) degree);
-        }
+    String direction;
+    float angle;
+    @Override
+    public void onDirectionUpdated(String compass, float degree) {
+        direction = compass;
+        angle = degree;
     }
 
     class myLocationListener implements LocationListener {
