@@ -37,6 +37,7 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.maps.model.RoundCap;
 
 import java.util.List;
+import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, SeekBar.OnSeekBarChangeListener, MovementDetection.OnMovementDetectionManagerListener {
 
@@ -53,8 +54,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     //marker for current location
     private Marker pointer;
-    private float headingAngle;
-    private CameraPosition cameraPosition;
+    private float headingAngle = 0.0f;
     ////To change after the algorithm works
     private LatLng currLocation = new LatLng(55.9226569, -3.1727689);
 
@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private GoogleMap map;
 
-    public int height = 165;
+    //public int height = 165;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,8 +81,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         movementDetection.setOnMovementDetectionManagerListener(this);
 
         //get intent
-        Intent intent = getIntent();
-        height = intent.getIntExtra("height", 165);
+        //Intent intent = getIntent();
+        //height = intent.getIntExtra("height", 165);
 
         //setup the transparency slider
         transparencyBar = findViewById(R.id.transparencySeekBar);
@@ -109,7 +109,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         movementDetection.unregisterSensors();
     }
 
-    // Get a handle to the GoogleMap object and display marker.
+    // When map is ready, do
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         map = googleMap;
@@ -137,7 +137,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .bearing(-32.75f)
                 .position(new LatLng(55.923426729009286, -3.171759210993783), 64, 64));
 
-        //set transparency level of the floor plan
+        //set default transparency level of the floor plan
         flFloor0.setTransparency((float)TRANSPARENCY_DEF/TRANSPARENCY_MAX);
         sandFloor0.setTransparency((float)TRANSPARENCY_DEF/TRANSPARENCY_MAX);
         hbFloor0.setTransparency((float)TRANSPARENCY_DEF/TRANSPARENCY_MAX);
@@ -152,7 +152,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         20: Buildings*/
 
         // Construct a CameraPosition focusing on Kings Buildings and animate the camera to that position.
-        cameraPosition = new CameraPosition.Builder()
+        // Sets the center of the map to Mountain View
+        // Sets the zoom
+        // Sets the orientation of the camera to north
+        // Sets the tilt of the camera to 0 degrees
+        CameraPosition cameraPosition = new CameraPosition.Builder()
                 .target(KB)                // Sets the center of the map to Mountain View
                 .zoom(18)                   // Sets the zoom
                 .bearing(0)                 // Sets the orientation of the camera to north
@@ -165,14 +169,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Display traffic.
         map.setTrafficEnabled(true);
 
+        //add location marker
         pointer = map.addMarker(new MarkerOptions()
-            .position(currLocation)
-            .anchor(0.5f, 0.5f)
-            .flat(true)
-            .icon(BitmapDescriptorFactory.fromResource(R.drawable.blue_arrow)));
+                .position(currLocation)
+                .anchor(0.5f, 0.5f)
+                .flat(true)
+                .icon(BitmapDescriptorFactory.fromResource(R.drawable.blue_arrow)));
 
+        //add trail
         polyLine = map.addPolyline(new PolylineOptions()
-            .add(currLocation));
+                .add(currLocation));
 
         polyLine.setStartCap(new RoundCap());
         polyLine.setEndCap(new RoundCap());
@@ -220,8 +226,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onHeadingUpdated(float degree) {
-        pointer.setRotation(degree);
-        headingAngle = degree;
+        headingAngle = (float) degree;
+        pointer.setRotation(headingAngle);
     }
 
     int step = 0;
@@ -239,7 +245,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     .target(currLocation)                   // Sets the center of the map to our current location
                     .bearing(headingAngle)                  // Sets the orientation of the camera to where the device is facing
                     .tilt(30)                               // Sets the tilt of the camera to 30 degrees
-                    .zoom(22)                               //set zoom to 20
+                    .zoom(22)                               //set zoom to 22
                     .build();                               // Creates a CameraPosition from the builder
         }
         // for the step afterwards, set to whatever the user set
@@ -258,11 +264,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         List<LatLng> points = polyLine.getPoints();
         points.add(latLng);
         polyLine.setPoints(points);
-    }
-
-    private void changeCameraPosition(CameraPosition cameraPosition) {
-        CameraUpdate cameraUpdate = CameraUpdateFactory.newCameraPosition(cameraPosition);
-        map.animateCamera(cameraUpdate);
     }
 
     //transparency slider

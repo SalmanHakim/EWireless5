@@ -15,7 +15,8 @@ public class UserStrideLengthActivity extends AppCompatActivity implements Adapt
 
     private Spinner genderSpinner;
 
-    public int gender;
+    static int gender;
+    static float height;
 
     private static final int[] GENDER_RESOURCE_IDS = {
             R.string.prefer_nts,
@@ -55,8 +56,7 @@ public class UserStrideLengthActivity extends AppCompatActivity implements Adapt
 
         //get data for height
         EditText editText = findViewById(R.id.editTextNumber);
-        int height = Integer.valueOf(editText.getText().toString());
-        intent.putExtra("height", height);
+        height = Float.valueOf(editText.getText().toString());
 
         startActivity(intent);
     }

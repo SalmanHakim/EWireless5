@@ -29,10 +29,6 @@ public class MovementDetection implements SensorEventListener {
     final private float uThreshold = 0.108f;
     final private float lThreshold = 0.088f;
 
-    //get gender and height
-    UserStrideLengthActivity userStrideLengthActivity = new UserStrideLengthActivity();
-    MainActivity mainActivity = new MainActivity();
-
     // Sensors data value used to calculate orientation
     float[] accelerometerValues = new float[3];
     float[] magneticFieldValues = new float[3];
@@ -70,7 +66,7 @@ public class MovementDetection implements SensorEventListener {
     private double magnitude;
     private float[] hpfiltered = new float[3];
     private float[] lpfiltered = new float[3];
-    private float grav[] = new float[3];
+    private final float[] grav = new float[3];
 
     //coordinate initialise
     float prev_x = 0.0f;
@@ -116,6 +112,7 @@ public class MovementDetection implements SensorEventListener {
         //heading angle
         degree = calculateOrientation();
         movementDetectionManagerListener.onHeadingUpdated(degree);
+
 
         //step detector
         if (!stepDetect) {
@@ -187,20 +184,20 @@ public class MovementDetection implements SensorEventListener {
     }
 
     private float stepLength () {
-        int h;
+        float h;
 
         //default height
-        if (mainActivity.height == 0) {
+        if (UserStrideLengthActivity.height == 0) {
             //convert to m
-            h = 165/100;
+            h = 165f;
         }
         else {
             //convert to m
-            h = mainActivity.height/100;
+            h = UserStrideLengthActivity.height;
         }
 
         //default gender
-        if (userStrideLengthActivity.gender == 1) {
+        if (UserStrideLengthActivity.gender == 1) {
             return (0.415f * h);
         }
         else {
@@ -237,6 +234,7 @@ public class MovementDetection implements SensorEventListener {
         return filtered;
     }
 
+    //heading angle calculator
     private float calculateOrientation() {
         float[] values = new float[3];
         float[] R = new float[9];
@@ -245,9 +243,7 @@ public class MovementDetection implements SensorEventListener {
         SensorManager.getRotationMatrix(R, null, accelerometerValues, magneticFieldValues);
         SensorManager.getOrientation(R, values);
 
-        float degree = (float) Math.toDegrees(values[0]);
-
-        return degree;
+        return (float) Math.toDegrees(values[0]);
     }
 
     @Override

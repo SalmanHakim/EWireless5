@@ -7,7 +7,7 @@
         It\'s okay if you don\'t want to tell us tho. You can still enjoy the app!</string>
     <string name="gender">Your gender?</string>
     <string name="height">Your height? (Put 0 if you don\'t want to provide the info)</string>
-    <string name="height_hint">in centimeters</string>
+    <string name="height_hint">in meters</string>
     <string name="male">Male</string>
     <string name="female">Female</string>
     <string name="prefer_nts">Prefer not to say</string>
